@@ -1,0 +1,26 @@
+# Django Core
+DEBUG: False
+SECRET_KEY: ${SECRET_KEY}
+ALLOWED_HOSTS: ["*"]
+
+# Database
+DATABASES:
+  default:
+    ENGINE: django.db.backends.postgresql
+    NAME: trading_db
+    USER: trader
+    PASSWORD: ${DB_PASSWORD}
+    HOST: postgres
+    PORT: 5432
+
+# Trading Specific
+TRADING_CONFIG:
+  MAX_TRADES_PER_DAY: 100
+  RISK_PARAMS:
+    MAX_DRAWDOWN: 2.0
+    DAILY_LOSS_LIMIT: 5.0
+  BROKERS:
+    - name: binance
+      enabled: true
+    - name: alpaca
+      enabled: false
