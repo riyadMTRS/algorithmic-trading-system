@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  trading-core:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ENVIRONMENT: production
+    image: trading-ai:prod
+    container_name: trading-core
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # API/health endpoints
+      - "5555:5555"  # Flower monitoring (optional)
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - trading-logs:/var/log/trading
+    environment:
+      - TZ=UTC
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    container_name: trading-redis
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: trading-db
+    environment:
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: trading
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  monitoring:
+    image: grafana/grafana:9.5
+    container_name: trading-monitor
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - trading-core
+
+volumes:
+  trading-logs:
+  redis-data:
+  postgres-data:
+  grafana-data:
